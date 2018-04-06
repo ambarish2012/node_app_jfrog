@@ -91,7 +91,7 @@ jobs:
     dependencyMode: strict
     triggerMode: parallel
     steps:
-      - OUT: node_app_jfrog_img_dh
+      - OUT: node_app_jfrog_img_jf
     flags:
       - node_app_jfrog
 
