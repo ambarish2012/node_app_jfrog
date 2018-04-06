@@ -99,7 +99,7 @@ jobs:
     type: runSh
     dependencyMode: strict
     steps:
-      - IN: node_app_img_dh # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
+      - IN: node_app_jfrog_img_jf # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
       - IN: kube_cli
         switch: off
       - IN: kube_cluster
