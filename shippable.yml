@@ -26,7 +26,7 @@ env:
     - MOD_LOC=$SHIPPABLE_REPO_DIR/node_modules/.bin/
     - DOCKER_REPO="node_app_jfrog"
     - DOCKER_ACC=ambarc-node-app-jfrog.jfrog.io # {account name}
-    - SHIP_IMG_RES=$DOCKER_REPO"_img_dh"
+    - SHIP_IMG_RES=$DOCKER_REPO"_img_jf"
 
 build:
 
@@ -53,13 +53,37 @@ build:
 
 ## OPTIONAL : In case you want to use this image in CD Assembly Lines
 resources:
-  - name: node_app_jfrog_img_dh
+  - name: node_app_jfrog_img_jf
     type: image
     integration: drship_artifactory # replace with your integration name
     versionTemplate:
-      sourceName: "devopsrecipes-node-app-jfrog.jfrog.io/node_app_jfrog" # replace with your Hub URL
+      sourceName: "ambarc-node-app-jfrog.jfrog.io/node_app_jfrog" # replace with your Hub URL
       isPull: false
       versionName: latest
+
+# REPO of kube configs
+  - name: node_app_jfrog_config_repo
+    type: gitRepo
+    integration: "drship_github"
+    versionTemplate:
+      sourceName: "ambarish2012/node_app_jfrog"
+      branch: master
+
+# gcloud CLI Config
+  - name: kube_cli
+    type: cliConfig
+    integration: "drship_kube"
+    versionTemplate:
+      region: "us-west1-a"
+
+# GKE cluster info
+  - name: kube_cluster
+    type: cluster
+    integration: "drship_kube"
+    pointer:
+      sourceName: "cluster"
+      region: "us-west1-a"
+
 
 jobs:
   - name: node_app_jfrog_runCI
@@ -70,3 +94,40 @@ jobs:
       - OUT: node_app_jfrog_img_dh
     flags:
       - node_app_jfrog
+
+  - name: deploy_app_kctl_kube
+    type: runSh
+    dependencyMode: strict
+    steps:
+      - IN: node_app_img_dh # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
+      - IN: kube_cli
+        switch: off
+      - IN: kube_cluster
+        switch: off
+      - IN: node_app_jfrog_config_repo
+        switch: off
+      - TASK:
+          name: deploy_jfrog_app
+          runtime:
+            options:
+              env:
+                - APP_LABEL: "kctl-jfrog-app"
+          script:
+            - pushd $(shipctl get_resource_state "node_app_jfrog_config_repo")
+            - cd specs
+            - export APP_IMG=$(shipctl get_resource_version_key node_app_jfrog_img_jf sourceName)
+            - export APP_TAG=$(shipctl get_resource_version_name node_app_jfrog_img_jf)
+            - shipctl replace appDeploy.yml appSvc.yml
+            - export CLUST=$(shipctl get_resource_version_key kube_cluster sourceName)
+            - export CLUST_REG=$(shipctl get_resource_version_key kube_cluster region)
+            - kubectl delete  -f ./appDeploy.yml 2>/dev/null || echo ""
+            - kubectl delete -f ./appSvc.yml  2>/dev/null || echo ""
+            - kubectl create -o json -f ./appDeploy.yml >> kube_output.json
+            - kubectl create -o json -f ./appSvc.yml >> kube_output.json
+            - cat kube_output.json
+            - popd
+    flags:
+      - gke
+      - cd
+      - kctl
+      - jfrog
