@@ -113,7 +113,6 @@ jobs:
               env:
                 - APP_LABEL: "kctl-jfrog-app"
           script:
-            - kubectl get services
             - pushd $(shipctl get_resource_state "node_app_jfrog_config_repo")
             - cd specs
             - export APP_IMG=$(shipctl get_resource_version_key node_app_jfrog_img_jf sourceName)
