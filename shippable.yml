@@ -55,7 +55,7 @@ build:
 resources:
   - name: node_app_jfrog_img_jf
     type: image
-    integration: drship_artifactory # replace with your integration name
+    integration: drship_dockerregistry # replace with your integration name
     versionTemplate:
       sourceName: "ambarc-node-app-jfrog.jfrog.io/node_app_jfrog" # replace with your Hub URL
       isPull: false
