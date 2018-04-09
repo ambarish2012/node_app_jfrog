@@ -73,18 +73,7 @@ resources:
   - name: kube_cli
     type: cliConfig
     integration: "drship_kube"
-    versionTemplate:
-      region: "us-west1-a"
-
-# GKE cluster info
-  - name: kube_cluster
-    type: cluster
-    integration: "drship_kube"
-    pointer:
-      sourceName: "cluster"
-      region: "us-west1-a"
-
-
+  
 jobs:
   - name: node_app_jfrog_runCI
     type: runCI
@@ -102,8 +91,6 @@ jobs:
       - IN: node_app_jfrog_img_jf # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
       - IN: kube_cli
         switch: off
-      - IN: kube_cluster
-        switch: off
       - IN: node_app_jfrog_config_repo
         switch: off
       - TASK:
@@ -118,8 +105,6 @@ jobs:
             - export APP_IMG=$(shipctl get_resource_version_key node_app_jfrog_img_jf sourceName)
             - export APP_TAG=$(shipctl get_resource_version_name node_app_jfrog_img_jf)
             - shipctl replace appDeploy.yml appSvc.yml
-            - export CLUST=$(shipctl get_resource_version_key kube_cluster sourceName)
-            - export CLUST_REG=$(shipctl get_resource_version_key kube_cluster region)
             - kubectl delete  -f ./appDeploy.yml 2>/dev/null || echo ""
             - kubectl delete -f ./appSvc.yml  2>/dev/null || echo ""
             - kubectl create -o json -f ./appDeploy.yml >> kube_output.json
@@ -127,7 +112,6 @@ jobs:
             - cat kube_output.json
             - popd
     flags:
-      - gke
       - cd
       - kctl
       - jfrog
