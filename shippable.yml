@@ -7,7 +7,7 @@ integrations:
   # adding JFrog artifactory integration so that credentials are available to CI Job
   # http://docs.shippable.com/platform/integration/jfrog-artifactoryKey/#jfrog-artifactory-integration
   hub:
-    - integrationName: drship_dockerregistry
+    - integrationName: drship_artifactory_docker
       type: dockerRegistryLogin
 
 # use this to control what branches get built.
@@ -26,7 +26,7 @@ env:
     - MOD_LOC=$SHIPPABLE_REPO_DIR/node_modules/.bin/
     - DOCKER_REPO="node_app_jfrog"
     - DOCKER_ACC=ambarc-node-app-jfrog.jfrog.io # {account name}
-    - SHIP_IMG_RES=$DOCKER_REPO"_img_jf"
+    - SHIP_IMG_RES=$DOCKER_REPO"_img_jfrog"
 
 build:
 
@@ -53,9 +53,9 @@ build:
 
 ## OPTIONAL : In case you want to use this image in CD Assembly Lines
 resources:
-  - name: node_app_jfrog_img_jf
+  - name: node_app_jfrog_img_jfrog
     type: image
-    integration: drship_dockerregistry # replace with your integration name
+    integration: drship_artifactory_docker # replace with your integration name
     versionTemplate:
       sourceName: "ambarc-node-app-jfrog.jfrog.io/node_app_jfrog" # replace with your Hub URL
       isPull: false
@@ -74,6 +74,7 @@ resources:
     type: cliConfig
     integration: "drship_kube"
 
+# Docker registry integration
   - name: node_app_jfrog_dr
     type: integration
     # replace drship_dockerregistry with your Docker registry integration name
@@ -85,7 +86,7 @@ jobs:
     dependencyMode: strict
     triggerMode: parallel
     steps:
-      - OUT: node_app_jfrog_img_jf
+      - OUT: node_app_jfrog_img_jfrog
     flags:
       - node_app_jfrog
 
@@ -104,7 +105,7 @@ jobs:
     type: runSh
     dependencyMode: strict
     steps:
-      - IN: node_app_jfrog_img_jf # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
+      - IN: node_app_jfrog_img_jfrog # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
       - IN: node_app_jfrog_kube_cli
         switch: off
       - IN: node_app_jfrog_config_repo
@@ -118,8 +119,8 @@ jobs:
           script:
             - pushd $(shipctl get_resource_state "node_app_jfrog_config_repo")
             - cd specs
-            - export APP_IMG=$(shipctl get_resource_version_key node_app_jfrog_img_jf sourceName)
-            - export APP_TAG=$(shipctl get_resource_version_name node_app_jfrog_img_jf)
+            - export APP_IMG=$(shipctl get_resource_version_key node_app_jfrog_img_jfrog sourceName)
+            - export APP_TAG=$(shipctl get_resource_version_name node_app_jfrog_img_jfrog)
             - shipctl replace appDeploy.yml appSvc.yml
             - kubectl delete  -f ./appDeploy.yml 2>/dev/null || echo ""
             - kubectl delete -f ./appSvc.yml  2>/dev/null || echo ""
