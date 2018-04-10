@@ -69,11 +69,16 @@ resources:
       sourceName: "ambarish2012/node_app_jfrog"
       branch: master
 
-# gcloud CLI Config
-  - name: kube_cli
+# kubernetes CLI Config
+  - name: node_app_jfrog_kube_cli
     type: cliConfig
     integration: "drship_kube"
-  
+
+  - name: node_app_jfrog_dr
+    type: integration
+    # replace drship_dockerregistry with your Docker registry integration name
+    integration: drship_dockerregistry
+
 jobs:
   - name: node_app_jfrog_runCI
     type: runCI
@@ -84,12 +89,23 @@ jobs:
     flags:
       - node_app_jfrog
 
+  - name: create_image_pull_secret_jfrog
+    type: runSh
+    steps:
+      - IN: node_app_jfrog_kube_cli
+      - IN: node_app_jfrog_dr
+      - TASK:
+          script:
+            # Delete and create the secret
+            - kubectl delete secret private-registry-key 2>/dev/null || echo "secret does not exist"
+            - kubectl create secret docker-registry private-registry-key --docker-username="$NODE_APP_JFROG_DR_INTEGRATION_USERNAME" --docker-password="$NODE_APP_JFROG_DR_INTEGRATION_PASSWORD" --docker-email="$NODE_APP_JFROG_DR_INTEGRATION_EMAIL" --docker-server="$NODE_APP_JFROG_DR_INTEGRATION_URL"/
+
   - name: deploy_app_kctl_kube
     type: runSh
     dependencyMode: strict
     steps:
       - IN: node_app_jfrog_img_jf # defined here https://github.com/devops-recipes/node_app/blob/master/shippable.yml
-      - IN: kube_cli
+      - IN: node_app_jfrog_kube_cli
         switch: off
       - IN: node_app_jfrog_config_repo
         switch: off
